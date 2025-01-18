@@ -6,8 +6,8 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-#define MATRIX_XSIZE 10
-#define MATRIX_YSIZE 10
+#define MATRIX_XSIZE 100
+#define MATRIX_YSIZE 100
 #define BLOCK_SIZE 3
 
 int isPrime(int x){
@@ -70,14 +70,7 @@ void print_matrix(int** matrix){
     }
 }
 
-void free_matrix(int** matrix){
-    if (matrix == NULL) return NULL;
-
-    if (MATRIX_XSIZE < 1 || MATRIX_YSIZE < 1){
-        printf("** Erro: Parametro Invalido **\n");
-        return(NULL);
-    }
-    
+void free_matrix(int** matrix){ 
     // Libera a memória alocada para a matriz
     for (int i = 0; i < MATRIX_XSIZE; i++){
         free(matrix[i]);
