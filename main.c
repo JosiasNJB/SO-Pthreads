@@ -1,3 +1,5 @@
+#include "thread.h"
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,25 +12,11 @@
 #define MATRIX_YSIZE 100
 #define BLOCK_SIZE 3
 
-int isPrime(int x){
-    // if the number is less than or equal to 1, it is not prime.
-    if (x <= 1) {
-        return 0;
-    }
+int prime_count = 0;
+clock_t start, finish;
+double time_spent;
 
-    // Check for divisors from 2 to the square root of the number.
-    // If any divisor is found, the number is not prime.
-    for (int i = 2; i <= sqrt(x); i++){
-        if (x % i == 0){
-            return 0;
-        }
-    }
-
-    // If no divisors are found, the number is prime.
-    return 1;
-}
-
-int **allocate_matrix(){
+int **create_matrix(){
     // Set random seed for matrix
     srand(4);
 
@@ -80,10 +68,36 @@ void free_matrix(int** matrix){
 
 int main(){
 
-    int **matrix = allocate_matrix();
-    print_matrix(matrix);
-    
+    // Contador de primos serial
+    int **matrix = create_matrix();
+    //print_matrix(matrix);
+
+    /*  SERIAL PRIME COUNTING TEST - WORKING ON 100X100 MATRIX*/
+    start = clock();
+
+    prime_count = serial_count(matrix, MATRIX_XSIZE, MATRIX_YSIZE, prime_count);
+
+    finish = clock();
+    time_spent = (double)(finish - start) / CLOCKS_PER_SEC;
+
+    printf("\n** Quantidade de Primos: %d **\n", prime_count);
+    printf("** Tempo de Execucao: %.6f segundos **\n", time_spent);
+
+    /*  PARALLEL PRIME COUNTING TEST - WORK IN PROGRESS */
+    /*
+    start = clock();
+
+    prime_count = parallel_count(matrix, MATRIX_XSIZE, MATRIX_YSIZE, BLOCK_SIZE, prime_count);
+
+    finish = clock();
+    time_spent = (double)(finish - start) / CLOCKS_PER_SEC;
+
+    printf("\n** Quantidade de Primos: %d **\n", prime_count);
+    printf("** Tempo de Execucao: %.6f segundos **\n", time_spent);
+    */
+
+    // freeing the matrix after the tests
     free_matrix(matrix);
-    
+
     return 0;
 }

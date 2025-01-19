@@ -3,3 +3,6 @@
 .vscode/settings.json
 main.o
 SO_Pthreads
+obj/thread.d
+obj/thread.o
+src/thread.o

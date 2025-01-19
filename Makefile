@@ -4,11 +4,20 @@ CC = gcc
 # Compiler flags
 CFLAGS = -Wall
 
-# Source files
-SRCS = main.c 
+# Source directory
+SRC_DIR = src
 
-# Object files
-OBJS = $(SRCS:.c=.o)
+# Header directory
+INC_DIR = include
+
+# Main file
+MAIN = main.c
+
+# Source files: all .c files in the source directory plus the main file
+SRCS = $(wildcard $(SRC_DIR)/*.c) $(MAIN)
+
+# Object files: replace .c with .o
+OBJS = $(patsubst %.c,%.o,$(SRCS))
 
 # Executable name
 TARGET = SO_Pthreads
@@ -32,7 +41,11 @@ clean:
 
 # Compile source files into object files
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -I $(INC_DIR) -c $< -o $@
+
+# Compile source files in the source directory into object files:
+$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
+	$(CC) $(CFLAGS) -I $(INC_DIR) -c $< -o $@
 
 # Link object files to create the executable
 $(TARGET): $(OBJS)
