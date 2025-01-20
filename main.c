@@ -1,4 +1,5 @@
 #include "thread.h"
+#include "queue.h"
 
 #include <pthread.h>
 #include <stdio.h>
@@ -8,48 +9,74 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-#define MATRIX_XSIZE 100
-#define MATRIX_YSIZE 100
-#define BLOCK_SIZE 3
+#define MATRIX_XSIZE 10
+#define MATRIX_YSIZE 10
+#define BLOCK_XSIZE 2
+#define BLOCK_YSIZE 2
 
 int prime_count = 0;
 clock_t start, finish;
 double time_spent;
 
-int **create_matrix(){
-    // Set random seed for matrix
-    srand(4);
+int **allocate_matrix(){
+    int **matrix; /* ponteiro para a matriz */
+    int index;
 
-    if (MATRIX_XSIZE < 1 || MATRIX_YSIZE < 1){ 
-        printf("** Erro: Parametro Invalido **\n");
-        return(NULL);
+    if (MATRIX_XSIZE < 1 || MATRIX_YSIZE < 1) { /* verifica parametros recebidos */
+        printf ("** Error: Invalid parameter **\n");
+        return (NULL);
     }
 
-    // Geração de uma matriz de números naturais aleatórios (intervalo 0 a 31999)
-    int **matrix = (int **)malloc(MATRIX_XSIZE * sizeof(int *));
-    
-    if (!matrix) {
-        printf("** Erro: Memoria Insuficiente **");
-        return(NULL);
+    /* aloca as linhas da matriz */
+    matrix = calloc(MATRIX_XSIZE, sizeof(int*)); /* Um vetor de m ponteiros para int */
+
+    if (matrix == NULL) {
+        printf("** Error: Not enough memory **\n");
+        return (NULL);
     }
 
-    for (int i = 0; i < MATRIX_XSIZE; i++){
+    /* aloca as colunas da matriz */
+    for ( index = 0; index < MATRIX_XSIZE; index++ ) {
+        matrix[index] = calloc(MATRIX_YSIZE, sizeof(int)); /* m vetores de n int */
 
-        matrix[i] = (int *)malloc(MATRIX_YSIZE * sizeof(int));
-
-        if (!matrix[i]) {
-            printf("** Erro: Memoria Insuficiente **");
-            return(NULL);
+        if (matrix[index] == NULL) {
+            printf("** Error: Not enough memory **\n");
+            return (NULL);
         }
+ }
 
-        for (int j = 0; j < MATRIX_YSIZE; j++){
-            matrix[i][j] = rand() % 32000;
-        } 
-    }
-    return matrix;
+ return (matrix); /* retorna o ponteiro para a matriz */
 }
 
-void print_matrix(int** matrix){
+void fill_matrix(int **matrix){
+    int i, j;
+    srand(4);
+
+    for (i = 0; i < MATRIX_XSIZE; i++){
+        for (j = 0; j < MATRIX_YSIZE; j++){
+            matrix[i][j] = rand() % 32000;
+        }
+    }
+}
+
+int **free_matrix(int **matrix){
+    int index; 
+
+    if (matrix == NULL) return (NULL);
+
+    if (MATRIX_XSIZE < 1 || MATRIX_YSIZE < 1) { /* verifica parâmetros recebidos */
+        printf ("** Error: Invalid parameter **\n");
+        return (matrix);
+    }
+
+    for (index = 0; index < MATRIX_XSIZE; index++) free (matrix[index]); /* libera as linhas da matriz */
+
+    free (matrix); /* libera a matriz (vetor de ponteiros) */
+    
+    return (NULL); /* retorna um ponteiro nulo */
+}
+
+void print_matrix(int **matrix){
     for (int i = 0; i < MATRIX_XSIZE; i++){
         for (int j = 0; j < MATRIX_YSIZE; j++){
             printf("%.5d ", matrix[i][j]);
@@ -57,20 +84,38 @@ void print_matrix(int** matrix){
         printf("\n");
     }
 }
-
-void free_matrix(int** matrix){ 
-    // Libera a memória alocada para a matriz
-    for (int i = 0; i < MATRIX_XSIZE; i++){
-        free(matrix[i]);
-    }
-    free(matrix);
-}
+;
 
 int main(){
+    int i = 0, j = 0;
+    int block_xnum = MATRIX_XSIZE / BLOCK_XSIZE;
+    int block_ynum = MATRIX_YSIZE / BLOCK_YSIZE;
 
     // Contador de primos serial
-    int **matrix = create_matrix();
+    int **matrix = allocate_matrix();
+    fill_matrix(matrix);
     //print_matrix(matrix);
+
+    // Starting the queue with the start coordinates of every block
+    BlockQueue *block_queue = q_create();
+    
+    // 
+    while(i <= block_xnum && j <= block_ynum){
+        //
+        if(i < block_xnum ){
+            q_enqueue(block_queue, create_coord_struct(i, j));
+            q_print(block_queue);
+            i++;
+        }
+        // 
+        if(i == block_xnum ){
+            q_enqueue(block_queue, create_coord_struct(i, j));
+            q_print(block_queue);
+
+            i=0;
+            j++;
+        }
+    }
 
     /*  SERIAL PRIME COUNTING TEST - WORKING ON 100X100 MATRIX*/
     start = clock();

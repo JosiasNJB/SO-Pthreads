@@ -1,4 +1,6 @@
 #include "thread.h"
+#include "queue.h"
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +25,7 @@ int isPrime(int x){
     return 1;
 }
 
-int serial_count(int** matrix, int matrix_xsize, int matrix_ysize, int prime_count){
+int serial_count(int **matrix, int matrix_xsize, int matrix_ysize, int prime_count){
     for(int i = 0; i < matrix_xsize; i++){
         for(int j = 0; j < matrix_ysize; j++){
             if(isPrime(matrix[i][j])){
@@ -34,8 +36,7 @@ int serial_count(int** matrix, int matrix_xsize, int matrix_ysize, int prime_cou
     return prime_count;
 }
 
-int parallel_count(int** matrix, int matrix_xsize, int matrix_ysize, int block_size, int prime_count){
+int parallel_count(int **matrix, int matrix_xsize, int matrix_ysize, int block_xsize, int block_ysize, int prime_count){
 
     return 0;
 }
-
