@@ -15,8 +15,24 @@
 #define BLOCK_YSIZE 2
 
 int prime_count = 0;
+
 clock_t start, finish;
+
 double time_spent;
+
+/* *************************** */
+/* ***** QUEUE FUNCTIONS ***** */
+/* *************************** */
+
+/* **** BLOCK COORDINATES **** */
+
+/* **************************** */
+/* ***** THREAD FUNCTIONS ***** */
+/* **************************** */
+
+/* **************************** */
+/* ***** MATRIX FUNCTIONS ***** */
+/* **************************** */
 
 int **allocate_matrix(){
     int **matrix; /* ponteiro para a matriz */
@@ -86,6 +102,10 @@ void print_matrix(int **matrix){
 }
 ;
 
+/* **************************** */
+/* **********  MAIN  ********** */
+/* **************************** */
+
 int main(){
     int i = 0, j = 0;
     int block_xnum = MATRIX_XSIZE / BLOCK_XSIZE;
@@ -104,18 +124,17 @@ int main(){
         //
         if(i < block_xnum ){
             q_enqueue(block_queue, create_coord_struct(i, j));
-            q_print(block_queue);
-            i++;
+            i += BLOCK_XSIZE;
         }
         // 
-        if(i == block_xnum ){
+        if(i >= block_xnum ){
             q_enqueue(block_queue, create_coord_struct(i, j));
-            q_print(block_queue);
 
             i=0;
-            j++;
+            j += BLOCK_YSIZE;
         }
     }
+    q_print(block_queue);
 
     /*  SERIAL PRIME COUNTING TEST - WORKING ON 100X100 MATRIX*/
     start = clock();

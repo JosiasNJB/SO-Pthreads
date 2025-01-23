@@ -6,3 +6,4 @@ SO_Pthreads
 obj/thread.d
 obj/thread.o
 src/thread.o
+SO_Pthreads.exe
