@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <pthread.h>
 
+#define SEED 4
 #define MATRIX_XSIZE 9
 #define MATRIX_YSIZE 9
 #define BLOCK_XSIZE 3
@@ -146,25 +147,21 @@ BlockCoord *create_coord_struct(int x, int y){
    return coord;
 }
 
-
-
-
-
 /* **************************** */
 /* ***** MATRIX FUNCTIONS ***** */
 /* **************************** */
 
-int isPrime(int x){
+int isPrime(int number){
     // if the number is less than or equal to 1, it is not prime.
-    if (x <= 1) {
+    if (number <= 1) {
         return 0;
     }
 
-    int square_root = sqrt(x);
+    int square_root = sqrt(number);
     // Check for divisors from 2 to the square root of the number.
     // If any divisor is found, the number is not prime.
     for (int i = 2; i <= square_root; i++){
-        if (x % i == 0){
+        if (number % i == 0){
             return 0;
         }
     }
@@ -205,7 +202,7 @@ int **allocate_matrix(){
 
 void fill_matrix(int **matrix){
     int i, j;
-    srand(4);
+    srand(SEED);
 
     for (i = 0; i < MATRIX_XSIZE; i++){
         for (j = 0; j < MATRIX_YSIZE; j++){
@@ -239,14 +236,34 @@ void print_matrix(int **matrix){
         printf("\n");
     }
 }
-;
-
 
 /* **************************** */
 /* ***** THREAD FUNCTIONS ***** */
 /* **************************** */
 
+/*  
+pthread_create(thread, attr, start_routine, arg)
+{
+    //ponteiro estrutura previamente alocada queconterá os atributos da thread
+    (void)thread;
+    // estrutura contendo opções de criação para a thread (NULL usa os valores padrão)
+    (void)attr;
+    //: função que será executada pela thread
+    (void)start_routine;
+    //argumento recebido pela função
+    (void)arg;
+    return 0;
+}
 
+pthread_join(thread, thread_return)
+{
+    //identificador da thread que será esperada
+    (void)thread;
+    //ponteiro para a variável que receberá o valor de retorno da thread
+    (void)thread_return;
+    return 0;
+}
+*/
 
 /* **************************** */
 /* ***** COUNT FUNCTIONS ***** */
@@ -273,16 +290,68 @@ int parallel_count(int **matrix, int matrix_xsize, int matrix_ysize, int block_x
     return 0;
 }
 
+/* **********  MENU  ********** */
+void menu(int **matrix, BlockQueue *block_queue){
+    int option, num_threads;
+    do{
+        printf("\n----------- MENU -----------\n");
+        printf("1. Print Matrix\n");
+        printf("2. Print Matrix's Blocks\n");
+        printf("3. Count Prime Numbers (Serial)\n");
+        printf("4. Count Prime Numbers (Parallel)\n");
+        printf("0. Sair\n");
+
+        scanf("%d", &option);
+        system("cls || clear");
+        printf("\n\n");
+
+        switch(option)
+        {
+            case 1:
+                print_matrix(matrix);
+                break;
+
+            case 2:
+                print_block_queue(block_queue, matrix, BLOCK_XSIZE, BLOCK_YSIZE);
+                break;
+
+            case 3:
+                /*  SERIAL PRIME COUNTING TEST - WORKING */
+                start = clock();
+
+                prime_count = serial_count(matrix, MATRIX_XSIZE, MATRIX_YSIZE, prime_count);
+
+                finish = clock();
+                time_spent = (double)(finish - start) / CLOCKS_PER_SEC;
+
+                printf("\n** Prime numbers in matrix: %d **\n", prime_count);
+                printf("** Run time: %.6f seconds **\n", time_spent);
+                break;
+
+            case 4:
+                printf("\n How many threads for the test?");
+                scanf("%d", &num_threads);  
+                
+                printf("\n** WORK IN PROGRESS **\n");
+
+                break;
+            case 0:
+                // sair();
+                break;
+
+            default:
+                printf("** Error: Invalid option!!! **\n  Please enter a valid option\n");
+        }
+    } while(option);
+
+}
+
 
 /* **************************** */
 /* **********  MAIN  ********** */
 /* **************************** */
 
 int main(){
-    int i = 0, j = 0;
-    int block_xnum = MATRIX_XSIZE / BLOCK_XSIZE;
-    int block_ynum = MATRIX_YSIZE / BLOCK_YSIZE;
-
     // Contador de primos serial
     int **matrix = allocate_matrix();
     fill_matrix(matrix);
@@ -297,20 +366,10 @@ int main(){
         }
     }
 
-    q_print(block_queue);
+    menu(matrix, block_queue);
+    //q_print(block_queue);
 
-    print_block_queue(block_queue, matrix, BLOCK_XSIZE, BLOCK_YSIZE);
-
-    /*  SERIAL PRIME COUNTING TEST - WORKING */
-    start = clock();
-
-    prime_count = serial_count(matrix, MATRIX_XSIZE, MATRIX_YSIZE, prime_count);
-
-    finish = clock();
-    time_spent = (double)(finish - start) / CLOCKS_PER_SEC;
-
-    printf("\n** Quantidade de Primos: %d **\n", prime_count);
-    printf("** Tempo de Execucao: %.6f segundos **\n", time_spent);
+    //print_block_queue(block_queue, matrix, BLOCK_XSIZE, BLOCK_YSIZE);
 
     /*  PARALLEL PRIME COUNTING TEST - WORK IN PROGRESS */
     /*
