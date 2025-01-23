@@ -1,7 +1,6 @@
 #include "thread.h"
 #include "queue.h"
 
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -9,10 +8,10 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-#define MATRIX_XSIZE 10
-#define MATRIX_YSIZE 10
-#define BLOCK_XSIZE 2
-#define BLOCK_YSIZE 2
+#define MATRIX_XSIZE 100
+#define MATRIX_YSIZE 100
+#define BLOCK_XSIZE 20
+#define BLOCK_YSIZE 20
 
 int prime_count = 0;
 
@@ -107,6 +106,7 @@ void print_matrix(int **matrix){
 /* **************************** */
 
 int main(){
+
     int i = 0, j = 0;
     int block_xnum = MATRIX_XSIZE / BLOCK_XSIZE;
     int block_ynum = MATRIX_YSIZE / BLOCK_YSIZE;
@@ -120,21 +120,24 @@ int main(){
     BlockQueue *block_queue = q_create();
     
     // 
-    while(i <= block_xnum && j <= block_ynum){
+    printf("blockx: %d \n", block_xnum);
+    printf("blocky: %d \n", block_ynum);
+    while(i <= MATRIX_XSIZE && j <= MATRIX_YSIZE){
         //
-        if(i < block_xnum ){
+        printf("i fora: %d \n", i);
+        if(i <= MATRIX_XSIZE){
+            printf("i dentro: %d \n", i);
             q_enqueue(block_queue, create_coord_struct(i, j));
             i += BLOCK_XSIZE;
         }
         // 
-        if(i >= block_xnum ){
+        if(i >= MATRIX_YSIZE){
+            printf("j: %d \n", i);
             q_enqueue(block_queue, create_coord_struct(i, j));
-
-            i=0;
             j += BLOCK_YSIZE;
         }
     }
-    q_print(block_queue);
+    //q_print(block_queue);
 
     /*  SERIAL PRIME COUNTING TEST - WORKING ON 100X100 MATRIX*/
     start = clock();

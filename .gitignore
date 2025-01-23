@@ -7,3 +7,9 @@ obj/thread.d
 obj/thread.o
 src/thread.o
 SO_Pthreads.exe
+.vs/ProjectSettings.json
+.vs/slnx.sqlite
+.vs/VSWorkspaceState.json
+.vs/SO-Pthreads/FileContentIndex/cbe5c33b-8067-44f9-8d63-cafdc295cba6.vsidx
+.vs/SO-Pthreads/FileContentIndex/read.lock
+.vs/SO-Pthreads/v17/.wsuo
