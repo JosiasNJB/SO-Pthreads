@@ -6,15 +6,15 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-//#include <unistd.h>
+#include <unistd.h>
 #include <stdbool.h>
 #include <assert.h>
-//#include <pthread.h>
+#include <pthread.h>
 
 
 #define SEED 4
-#define MATRIX_XSIZE 10000
-#define MATRIX_YSIZE 10000
+#define MATRIX_XSIZE 9
+#define MATRIX_YSIZE 9
 #define BLOCK_XSIZE 3
 #define BLOCK_YSIZE 3
 
@@ -387,7 +387,7 @@ void menu(int** matrix, BlockQueue* block_queue) {
 /* **********  MAIN  ********** */
 /* **************************** */
 
-int main() {
+int main(int argc, char *argv[]) {
     // Contador de primos serial
     int** matrix = allocate_matrix();
     fill_matrix(matrix);
