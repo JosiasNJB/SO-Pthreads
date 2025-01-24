@@ -2,19 +2,23 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
+#pragma comment(lib,"pthreadVC2.lib")
+
+#define HAVE_STRUCT_TIMESPEC
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <pthread.h>
 
 
 #define SEED 4
-#define MATRIX_XSIZE 9
-#define MATRIX_YSIZE 9
+#define MATRIX_XSIZE 100000
+#define MATRIX_YSIZE 100000
 #define BLOCK_XSIZE 3
 #define BLOCK_YSIZE 3
 
@@ -55,7 +59,7 @@ struct block_queue
 BlockQueue* q_create()
 {
     BlockQueue* q = (BlockQueue*)malloc(sizeof(BlockQueue));// Allocate memory for the block_queue structure.
-	if (q == NULL) return NULL;                 // If the memory allocation fails, return NULL (indicating failure
+    if (q == NULL) return NULL;                 // If the memory allocation fails, return NULL (indicating failure
     q->front = q->rear = NULL;                 // Initialize the front and rear pointers to NULL, indicating an empty block_queue.
     return q;
 }
@@ -70,10 +74,10 @@ int q_is_empty(BlockQueue* q)
 void q_enqueue(BlockQueue* q, BlockCoord* v)
 {
     BlockQueueNode* node = (BlockQueueNode*)malloc(sizeof(BlockQueueNode)); // Allocate memory for a new node.
-	if (node == NULL){
-		printf("** Error: Not enough memory **\n");
-		return;
-	}
+    if (node == NULL) {
+        printf("** Error: Not enough memory **\n");
+        return;
+    }
     node->info = v;
     node->next = NULL;
 
@@ -147,10 +151,10 @@ void print_block_queue(BlockQueue* block_queue, int** matrix, int block_xsize, i
 /* **** BLOCK COORDINATES **** */
 BlockCoord* create_coord_struct(int x, int y) {
     BlockCoord* coord = (BlockCoord*)malloc(sizeof(BlockCoord));
-	if (coord == NULL) {
-		printf("** Error: Not enough memory **\n");
-		return NULL;
-	}
+    if (coord == NULL) {
+        printf("** Error: Not enough memory **\n");
+        return NULL;
+    }
     coord->block_xposition = x;
     coord->block_yposition = y;
 
@@ -263,7 +267,7 @@ void print_matrix(int** matrix) {
 /* ***** THREAD FUNCTIONS ***** */
 /* **************************** */
 
-
+/*
 pthread_create(thread, attr, start_routine, arg)
 {
     //ponteiro estrutura previamente alocada queconterá os atributos da thread
@@ -285,7 +289,7 @@ pthread_join(thread, thread_return)
     (void)thread_return;
     return 0;
 }
-
+*/
 
 /* **************************** */
 /* ***** COUNT FUNCTIONS ***** */
@@ -327,12 +331,12 @@ void menu(int** matrix, BlockQueue* block_queue) {
             system("cls || clear");
             printf("\n\n");
         }
-		else {
-			printf("** Error: Invalid option!!! **\n  Please enter a valid option\n");
-			option = -1;
-			continue;
-		}
-        
+        else {
+            printf("** Error: Invalid option!!! **\n  Please enter a valid option\n");
+            option = -1;
+            continue;
+        }
+
         switch (option)
         {
         case 1:
@@ -360,12 +364,12 @@ void menu(int** matrix, BlockQueue* block_queue) {
             printf("\n How many threads for the test?");
 
             if (scanf("%d", &num_threads)) {
-				system("cls || clear");
-				printf("\n\n");
-			}
-			else {
-				printf("** Error: Invalid option!!! **\n  Please enter a valid option\n");
-				break;
+                system("cls || clear");
+                printf("\n\n");
+            }
+            else {
+                printf("** Error: Invalid option!!! **\n  Please enter a valid option\n");
+                break;
             };
 
             printf("\n** WORK IN PROGRESS **\n");
@@ -387,7 +391,7 @@ void menu(int** matrix, BlockQueue* block_queue) {
 /* **********  MAIN  ********** */
 /* **************************** */
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     // Contador de primos serial
     int** matrix = allocate_matrix();
     fill_matrix(matrix);
