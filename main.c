@@ -1,32 +1,36 @@
 #pragma once
-#define _CRT_SECURE_NO_WARNINGS
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-
 #pragma comment(lib,"pthreadVC2.lib")
 
+#define _CRT_SECURE_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define HAVE_STRUCT_TIMESPEC
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-//#include <unistd.h>
 #include <stdbool.h>
-#include <assert.h>
 #include <pthread.h>
+#include <assert.h>
 
+//#include <unistd.h>
 
 #define SEED 4
-#define MATRIX_XSIZE 100000
-#define MATRIX_YSIZE 100000
+#define MATRIX_XSIZE 9
+#define MATRIX_YSIZE 9
 #define BLOCK_XSIZE 3
 #define BLOCK_YSIZE 3
 
+int** matrix;
 int prime_count = 0;
-
+double time_spent;
 clock_t start, finish;
 
-double time_spent;
+
+
+// Mutexes de controle de RC's
+pthread_mutex_t mutex;
+pthread_mutex_t mutex_block_status;
 
 /* *************************** */
 /* ***** QUEUE FUNCTIONS ***** */
@@ -39,6 +43,7 @@ typedef struct block_queue BlockQueue;
 struct block_coord {
     int block_xposition;
     int block_yposition;
+    int block_status;
 };
 
 // Define a structure for a node in the linked list.
@@ -129,25 +134,6 @@ void q_print(BlockQueue* q) {
     printf("\n");
 }
 
-void print_block_queue(BlockQueue* block_queue, int** matrix, int block_xsize, int block_ysize) {
-    BlockQueueNode* current = block_queue->front;
-
-    while (current != NULL) {
-        BlockCoord* coord = current->info;
-        printf("Bloco na coordenada (%d, %d):\n", coord->block_xposition, coord->block_yposition);
-
-        for (int i = coord->block_xposition; i < coord->block_xposition + block_xsize && i < MATRIX_XSIZE; i++) {
-            for (int j = coord->block_yposition; j < coord->block_yposition + block_ysize && j < MATRIX_YSIZE; j++) {
-                printf("%5d ", matrix[i][j]);
-            }
-            printf("\n");
-        }
-
-        printf("\n");
-        current = current->next;
-    }
-}
-
 /* **** BLOCK COORDINATES **** */
 BlockCoord* create_coord_struct(int x, int y) {
     BlockCoord* coord = (BlockCoord*)malloc(sizeof(BlockCoord));
@@ -157,8 +143,28 @@ BlockCoord* create_coord_struct(int x, int y) {
     }
     coord->block_xposition = x;
     coord->block_yposition = y;
+    coord->block_status = 0; // 0 = unread, 1 = read
 
     return coord;
+}
+
+void print_block_queue(BlockQueue* block_queue, int** matrix) {
+    BlockQueueNode* current = block_queue->front;
+
+    while (current != NULL) {
+        BlockCoord* coord = current->info;
+        printf("Bloco na coordenada (%d, %d):\n", coord->block_xposition, coord->block_yposition);
+
+        for (int i = coord->block_xposition; i < coord->block_xposition + BLOCK_XSIZE && i < MATRIX_XSIZE; i++) {
+            for (int j = coord->block_yposition; j < coord->block_yposition + BLOCK_YSIZE && j < MATRIX_YSIZE; j++) {
+                printf("%5d ", matrix[i][j]);
+            }
+            printf("\n");
+        }
+
+        printf("\n");
+        current = current->next;
+    }
 }
 
 /* **************************** */
@@ -267,64 +273,99 @@ void print_matrix(int** matrix) {
 /* ***** THREAD FUNCTIONS ***** */
 /* **************************** */
 
-/*
-pthread_create(thread, attr, start_routine, arg)
-{
-    //ponteiro estrutura previamente alocada queconterá os atributos da thread
-    (void)thread;
-    // estrutura contendo opções de criação para a thread (NULL usa os valores padrão)
-    (void)attr;
-    //: função que será executada pela thread
-    (void)start_routine;
-    //argumento recebido pela função
-    (void)arg;
-    return 0;
-}
+void* thread_readblock(void* args) {
+    BlockQueue* block_queue = (BlockQueue*) args;
+    BlockQueueNode* current = block_queue->front;
 
-pthread_join(thread, thread_return)
-{
-    //identificador da thread que será esperada
-    (void)thread;
-    //ponteiro para a variável que receberá o valor de retorno da thread
-    (void)thread_return;
-    return 0;
+    while (current != NULL) {
+        BlockCoord* coord = current->info;
+        printf("Block on coordinate (%d, %d):\n", coord->block_xposition, coord->block_yposition);
+
+        pthread_mutex_lock(&mutex_block_status);
+
+        if(coord->block_status == 0) {
+            for (int i = coord->block_xposition; i < coord->block_xposition + BLOCK_XSIZE && i < MATRIX_XSIZE; i++) {
+                for (int j = coord->block_yposition; j < coord->block_yposition + BLOCK_YSIZE && j < MATRIX_YSIZE; j++) {
+                    if (isPrime(matrix[i][j])) {
+
+                        pthread_mutex_lock(&mutex);
+                        prime_count++;
+                        pthread_mutex_unlock(&mutex);
+
+                    }
+                }
+            }
+            // Mark block as read
+            coord->block_status = 1;
+            pthread_mutex_unlock(&mutex_block_status);
+        }
+
+        current = current->next;
+    }
+    pthread_exit(NULL);
 }
-*/
 
 /* **************************** */
 /* ***** COUNT FUNCTIONS ***** */
 /* **************************** */
 
-int serial_count(int** matrix, int matrix_xsize, int matrix_ysize, int prime_count) {
-    for (int i = 0; i < matrix_xsize; i++) {
-        for (int j = 0; j < matrix_ysize; j++) {
+double serial_count(int** matrix, int prime_count) {
+    start = clock();
+
+    for (int i = 0; i < MATRIX_XSIZE; i++) {
+        for (int j = 0; j < MATRIX_YSIZE; j++) {
             if (isPrime(matrix[i][j])) {
                 prime_count++;
             }
         }
     }
-    return prime_count;
+
+    // Function reports
+    finish = clock();
+    time_spent = (double)(finish - start) / CLOCKS_PER_SEC;
+
+    printf("\n Matrix Size: %dx%d\n", MATRIX_XSIZE, MATRIX_YSIZE);
+    printf("\n** Prime numbers in matrix: %d **\n", prime_count);
+
+    return time_spent;
 }
 
-int parallel_count(int** matrix, int matrix_xsize, int matrix_ysize, int block_xsize, int block_ysize, int prime_count) {
-    (void)matrix;
-    (void)matrix_xsize;
-    (void)matrix_ysize;
-    (void)block_xsize;
-    (void)block_ysize;
-    (void)prime_count;
-    return 0;
+double parallel_count(BlockQueue* block_queue, int** matrix, int prime_count, int num_threads, pthread_t* threads) {
+    start = clock();
+
+    // Create and execute threads
+    for (int i = 0; i < num_threads; i++) {
+        pthread_create(&threads[i], NULL, thread_readblock, (void *) &block_queue);
+    }
+
+    // Wait till all threads have finished
+    for (int i = 0; i < num_threads; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    // Function reports
+    finish = clock();
+    time_spent = (double)(finish - start) / CLOCKS_PER_SEC;
+
+    printf("\n** Matrix Size: %dx%d           **", MATRIX_XSIZE, MATRIX_YSIZE);
+    printf("\n** Blocks inside the matrix: %d **", ((MATRIX_XSIZE/BLOCK_XSIZE)+(MATRIX_YSIZE/BLOCK_YSIZE)));
+    printf("\n** Threads used: %d             **", num_threads);
+    printf("\n** Prime numbers in matrix: %d  **", prime_count);
+
+    return time_spent;
 }
 
 /* **********  MENU  ********** */
-void menu(int** matrix, BlockQueue* block_queue) {
+void menu(int** matrix, BlockQueue* block_queue, pthread_t* threads) {
     int option, num_threads;
+    double serial_time, parallel_time;
     do {
         printf("\n----------- MENU -----------\n");
         printf("1. Print Matrix\n");
         printf("2. Print Matrix's Blocks\n");
         printf("3. Count Prime Numbers (Serial)\n");
         printf("4. Count Prime Numbers (Parallel)\n");
+        printf("5. Calculate Speedup (Runs both counters)\n");
         printf("0. Sair\n");
 
         if (scanf("%d", &option)) {
@@ -344,20 +385,13 @@ void menu(int** matrix, BlockQueue* block_queue) {
             break;
 
         case 2:
-            print_block_queue(block_queue, matrix, BLOCK_XSIZE, BLOCK_YSIZE);
+            print_block_queue(block_queue, matrix);
             break;
 
         case 3:
             /*  SERIAL PRIME COUNTING TEST - WORKING */
-            start = clock();
-
-            prime_count = serial_count(matrix, MATRIX_XSIZE, MATRIX_YSIZE, prime_count);
-
-            finish = clock();
-            time_spent = (double)(finish - start) / CLOCKS_PER_SEC;
-
-            printf("\n** Prime numbers in matrix: %d **\n", prime_count);
-            printf("** Run time: %.6f seconds **\n", time_spent);
+            serial_time = serial_count(matrix, prime_count);
+            printf("** Run time: %.6f seconds         **\n", serial_time);
             break;
 
         case 4:
@@ -372,9 +406,25 @@ void menu(int** matrix, BlockQueue* block_queue) {
                 break;
             };
 
+            // Criar threads
+            printf("\n** Creating %d threads **\n", num_threads);
+            threads = malloc(num_threads * sizeof(pthread_t));
+
+            if (threads == NULL) {
+                perror("Error when allocating threads");
+                break;
+            }
+
+            parallel_time = parallel_count(block_queue, matrix, prime_count, num_threads, threads);
+            printf("** Run time: %.6f seconds **\n", parallel_time);
+
+            break;
+
+        case 5:
             printf("\n** WORK IN PROGRESS **\n");
 
             break;
+
         case 0:
             // sair();
             break;
@@ -386,13 +436,18 @@ void menu(int** matrix, BlockQueue* block_queue) {
 
 }
 
-
 /* **************************** */
 /* **********  MAIN  ********** */
 /* **************************** */
-
 int main(int argc, char* argv[]) {
-    // Contador de primos serial
+
+    pthread_t* threads = NULL;
+
+    // Initialize mutexes
+    pthread_mutex_init(&mutex, NULL);
+    pthread_mutex_init(&mutex_block_status, NULL);
+
+    // Initialize matrix
     int** matrix = allocate_matrix();
     fill_matrix(matrix);
     //print_matrix(matrix);
@@ -406,26 +461,16 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    menu(matrix, block_queue);
-    //q_print(block_queue);
-
-    //print_block_queue(block_queue, matrix, BLOCK_XSIZE, BLOCK_YSIZE);
-
-    /*  PARALLEL PRIME COUNTING TEST - WORK IN PROGRESS */
-    /*
-    start = clock();
-
-    prime_count = parallel_count(matrix, MATRIX_XSIZE, MATRIX_YSIZE, BLOCK_SIZE, prime_count);
-
-    finish = clock();
-    time_spent = (double)(finish - start) / CLOCKS_PER_SEC;
-
-    printf("\n** Quantidade de Primos: %d **\n", prime_count);
-    printf("** Tempo de Execucao: %.6f segundos **\n", time_spent);
-    */
+    menu(matrix, block_queue, &threads);
 
     // freeing the matrix after the tests
     free_matrix(matrix);
 
+    // Destroy mutexes
+    pthread_mutex_destroy(&mutex);
+    pthread_mutex_destroy(&mutex_block_status);
+
     return 0;
+    
+    system("pause");
 }
