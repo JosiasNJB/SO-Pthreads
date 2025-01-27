@@ -16,13 +16,14 @@
 //#include <unistd.h>
 
 #define SEED 4
+#define NUM_THREADS 3
 #define MATRIX_XSIZE 9
 #define MATRIX_YSIZE 9
 #define BLOCK_XSIZE 3
 #define BLOCK_YSIZE 3
 
 int** matrix;
-int prime_count = 0;
+int prime_count;
 double time_spent;
 clock_t start, finish;
 
@@ -35,7 +36,6 @@ pthread_mutex_t mutex_block_status;
 /* *************************** */
 /* ***** QUEUE FUNCTIONS ***** */
 /* *************************** */
-
 typedef struct block_coord BlockCoord;
 typedef struct block_queue_node BlockQueueNode;
 typedef struct block_queue BlockQueue;
@@ -148,7 +148,7 @@ BlockCoord* create_coord_struct(int x, int y) {
     return coord;
 }
 
-void print_block_queue(BlockQueue* block_queue, int** matrix) {
+void print_block_queue(BlockQueue* block_queue) {
     BlockQueueNode* current = block_queue->front;
 
     while (current != NULL) {
@@ -191,7 +191,7 @@ int isPrime(int number) {
 }
 
 int** allocate_matrix() {
-    int** matrix; /* ponteiro para a matriz */
+    int** v; /* ponteiro para a matriz */
     int index;
 
     if (MATRIX_XSIZE < 1) {
@@ -207,27 +207,27 @@ int** allocate_matrix() {
 
 
     /* aloca as linhas da matriz */
-    matrix = calloc(MATRIX_XSIZE, sizeof(int*)); /* Um vetor de m ponteiros para int */
+    v = calloc(MATRIX_XSIZE, sizeof(int*)); /* Um vetor de m ponteiros para int */
 
-    if (matrix == NULL) {
+    if (v == NULL) {
         printf("** Error: Not enough memory **\n");
         return (NULL);
     }
 
     /* aloca as colunas da matriz */
     for (index = 0; index < MATRIX_XSIZE; index++) {
-        matrix[index] = calloc(MATRIX_YSIZE, sizeof(int)); /* m vetores de n int */
+        v[index] = calloc(MATRIX_YSIZE, sizeof(int)); /* m vetores de n int */
 
-        if (matrix[index] == NULL) {
+        if (v[index] == NULL) {
             printf("** Error: Not enough memory **\n");
             return (NULL);
         }
     }
 
-    return (matrix); /* retorna o ponteiro para a matriz */
+    return (v); /* retorna o ponteiro para a matriz */
 }
 
-void fill_matrix(int** matrix) {
+void fill_matrix() {
     int i, j;
     srand(SEED);
 
@@ -238,7 +238,7 @@ void fill_matrix(int** matrix) {
     }
 }
 
-int** free_matrix(int** matrix) {
+int** free_matrix() {
     int index;
 
     if (matrix == NULL) return (NULL);
@@ -260,7 +260,7 @@ int** free_matrix(int** matrix) {
     return (NULL); /* retorna um ponteiro nulo */
 }
 
-void print_matrix(int** matrix) {
+void print_matrix() {
     for (int i = 0; i < MATRIX_XSIZE; i++) {
         for (int j = 0; j < MATRIX_YSIZE; j++) {
             printf("%.5d ", matrix[i][j]);
@@ -273,13 +273,15 @@ void print_matrix(int** matrix) {
 /* ***** THREAD FUNCTIONS ***** */
 /* **************************** */
 
-void* thread_readblock(void* args) {
-    BlockQueue* block_queue = (BlockQueue*) args;
+void* thread_readblock(void* arg) {
+    BlockQueue* block_queue = (BlockQueue*) arg;
     BlockQueueNode* current = block_queue->front;
+
+    //print_block_queue(block_queue);
 
     while (current != NULL) {
         BlockCoord* coord = current->info;
-        printf("Block on coordinate (%d, %d):\n", coord->block_xposition, coord->block_yposition);
+        //printf("Block on coordinate (%d, %d):\n", coord->block_xposition, coord->block_yposition);
 
         pthread_mutex_lock(&mutex_block_status);
 
@@ -309,7 +311,7 @@ void* thread_readblock(void* args) {
 /* ***** COUNT FUNCTIONS ***** */
 /* **************************** */
 
-double serial_count(int** matrix, int prime_count) {
+double serial_count() {
     start = clock();
 
     for (int i = 0; i < MATRIX_XSIZE; i++) {
@@ -330,16 +332,18 @@ double serial_count(int** matrix, int prime_count) {
     return time_spent;
 }
 
-double parallel_count(BlockQueue* block_queue, int** matrix, int prime_count, int num_threads, pthread_t* threads) {
+double parallel_count(BlockQueue* block_queue, pthread_t* threads) {
+    printf("testing parallel count\n");
+
     start = clock();
 
     // Create and execute threads
-    for (int i = 0; i < num_threads; i++) {
+    for (int i = 0; i < NUM_THREADS; i++) {
         pthread_create(&threads[i], NULL, thread_readblock, (void *) &block_queue);
     }
 
     // Wait till all threads have finished
-    for (int i = 0; i < num_threads; i++) {
+    for (int i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
 
@@ -349,15 +353,15 @@ double parallel_count(BlockQueue* block_queue, int** matrix, int prime_count, in
 
     printf("\n** Matrix Size: %dx%d           **", MATRIX_XSIZE, MATRIX_YSIZE);
     printf("\n** Blocks inside the matrix: %d **", ((MATRIX_XSIZE/BLOCK_XSIZE)+(MATRIX_YSIZE/BLOCK_YSIZE)));
-    printf("\n** Threads used: %d             **", num_threads);
+    printf("\n** Threads used: %d             **", NUM_THREADS);
     printf("\n** Prime numbers in matrix: %d  **", prime_count);
 
     return time_spent;
 }
 
 /* **********  MENU  ********** */
-void menu(int** matrix, BlockQueue* block_queue, pthread_t* threads) {
-    int option, num_threads;
+void menu(BlockQueue* block_queue, pthread_t* threads) {
+    int option;
     double serial_time, parallel_time;
     do {
         printf("\n----------- MENU -----------\n");
@@ -381,41 +385,30 @@ void menu(int** matrix, BlockQueue* block_queue, pthread_t* threads) {
         switch (option)
         {
         case 1:
-            print_matrix(matrix);
+            print_matrix();
             break;
 
         case 2:
-            print_block_queue(block_queue, matrix);
+            print_block_queue(block_queue);
             break;
 
         case 3:
             /*  SERIAL PRIME COUNTING TEST - WORKING */
-            serial_time = serial_count(matrix, prime_count);
+            serial_time = serial_count();
             printf("** Run time: %.6f seconds         **\n", serial_time);
             break;
 
         case 4:
-            printf("\n How many threads for the test?");
-
-            if (scanf("%d", &num_threads)) {
-                system("cls || clear");
-                printf("\n\n");
-            }
-            else {
-                printf("** Error: Invalid option!!! **\n  Please enter a valid option\n");
-                break;
-            };
-
             // Criar threads
-            printf("\n** Creating %d threads **\n", num_threads);
-            threads = malloc(num_threads * sizeof(pthread_t));
+            printf("\n** Creating %d threads **\n", NUM_THREADS);
+            threads = malloc(NUM_THREADS * sizeof(pthread_t));
 
             if (threads == NULL) {
                 perror("Error when allocating threads");
                 break;
             }
 
-            parallel_time = parallel_count(block_queue, matrix, prime_count, num_threads, threads);
+            parallel_time = parallel_count(block_queue, threads);
             printf("** Run time: %.6f seconds **\n", parallel_time);
 
             break;
@@ -448,9 +441,9 @@ int main(int argc, char* argv[]) {
     pthread_mutex_init(&mutex_block_status, NULL);
 
     // Initialize matrix
-    int** matrix = allocate_matrix();
-    fill_matrix(matrix);
-    //print_matrix(matrix);
+    matrix = allocate_matrix();
+    fill_matrix();
+    //print_matrix();
 
     // Starting the queue with the start coordinates of every block
     BlockQueue* block_queue = q_create();
@@ -461,10 +454,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    menu(matrix, block_queue, &threads);
+    menu(block_queue, &threads);
 
     // freeing the matrix after the tests
-    free_matrix(matrix);
+    free_matrix();
 
     // Destroy mutexes
     pthread_mutex_destroy(&mutex);
