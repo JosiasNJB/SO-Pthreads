@@ -328,19 +328,18 @@ double serial_count() {
     finish = clock();
     time_spent = (double)(finish - start) / CLOCKS_PER_SEC;
 
-    printf("\n Matrix Size: %dx%d\n", MATRIX_XSIZE, MATRIX_YSIZE);
-    printf("\n** Prime numbers in matrix: %d **\n", prime_count);
+    printf("\n** Matrix Size: %dx%d            **\n", MATRIX_XSIZE, MATRIX_YSIZE);
+    printf("** Prime numbers in matrix: %d   **\n", prime_count);
     prime_count = 0;
     return time_spent;
 }
 
 double parallel_count(BlockQueue* block_queue, pthread_t* threads) {
-    printf("testing parallel count\n");
 
     start = clock();
 
     for (int i = 0; i < NUM_THREADS; i++) {
-        printf("\n Created thread %d\n", i);
+        //printf("\n Created thread %d\n", i);
         int ret = pthread_create(&threads[i], NULL, thread_readblock, NULL);
         if (ret != 0) {
             printf("** Error creating thread %d **\n", i);
@@ -362,10 +361,10 @@ double parallel_count(BlockQueue* block_queue, pthread_t* threads) {
     finish = clock();
     time_spent = (double)(finish - start) / CLOCKS_PER_SEC;
 
-    printf("\n** Matrix Size: %dx%d           **", MATRIX_XSIZE, MATRIX_YSIZE);
-    printf("\n** Blocks inside the matrix: %d **", blocks_insider_matrix);
-    printf("\n** Threads used: %d             **", NUM_THREADS);
-    printf("\n** Prime numbers in matrix: %d  **", prime_count);
+    printf("\n** Matrix Size: %dx%d            **\n", MATRIX_XSIZE, MATRIX_YSIZE);
+    printf("** Blocks inside the matrix: %d     **\n", blocks_insider_matrix);
+    printf("** Threads used: %d                     **\n", NUM_THREADS);
+    printf("** Prime numbers in matrix: %d   **\n", prime_count);
 
     prime_count = 0;
     return time_spent;
@@ -374,45 +373,55 @@ double parallel_count(BlockQueue* block_queue, pthread_t* threads) {
 /* **********  MENU  ********** */
 void menu(BlockQueue* block_queue, pthread_t* threads) {
     int option;
-    double serial_time, parallel_time;
+    double speedup, serial_time, parallel_time;
     do {
-        printf("\n----------- MENU -----------\n");
+        printf("\n---------------- MENU -------------------\n");
         printf("1. Print Matrix\n");
         printf("2. Print Matrix's Blocks\n");
         printf("3. Count Prime Numbers (Serial)\n");
         printf("4. Count Prime Numbers (Parallel)\n");
         printf("5. Calculate Speedup (Runs both counters)\n");
-        printf("0. Leave\n");
+        printf("0. Exit\n");
+        printf("-----------------------------------------\n");
 
         if (scanf("%d", &option)) {
             system("cls || clear");
             printf("\n\n");
         }
         else {
-            printf("** Error: Invalid option!!! **\n  Please enter a valid option\n");
-            option = -1;
-            continue;
+            printf("** Error: Invalid option!!! **\n**  Please enter a valid option **\n");
+            break;
         }
 
         switch (option)
         {
         case 1:
+            printf("** Printing the full matrix...         **\n");
+            printf("-----------------------------------------\n");
             print_matrix();
+
             break;
 
         case 2:
+            printf("** Printing each block in matrix...    **\n");
+            printf("-----------------------------------------\n");
             print_block_queue(block_queue);
+
             break;
 
         case 3:
-            /*  SERIAL PRIME COUNTING TEST - WORKING */
+            /* SERIAL PRIME COUNTING TEST */
+            printf("** Running Serial Count...             **\n");
+            printf("-----------------------------------------\n");
             serial_time = serial_count();
-            printf("** Run time: %.6f seconds         **\n", serial_time);
+            printf("** Run time: %.6f seconds          **\n", serial_time);
+
             break;
 
         case 4:
-            // Create threads
-            printf("\n** Creating %d threads **\n", NUM_THREADS);
+            /* PARALLEL PRIME COUNTING TEST */
+            printf("** Creating %d threads...               **\n", NUM_THREADS);
+            printf("-----------------------------------------\n");
             threads = malloc(NUM_THREADS * sizeof(pthread_t));
 
             if (threads == NULL) {
@@ -420,8 +429,10 @@ void menu(BlockQueue* block_queue, pthread_t* threads) {
                 break;
             }
 
+            printf("\n** Running Parallel Count...           ** \n");
+            printf("-----------------------------------------\n");
             parallel_time = parallel_count(block_queue, threads);
-            printf("** Run time: %.6f seconds **\n", parallel_time);
+            printf("** Run time: %.6f seconds          **\n", parallel_time);
 
             // Free threads when they aren't needed anymore
             free(threads);
@@ -429,16 +440,43 @@ void menu(BlockQueue* block_queue, pthread_t* threads) {
             break;
 
         case 5:
-            printf("\n** WORK IN PROGRESS **\n");
+            /* SERIAL PRIME COUNTING TEST */
+            printf("** Running Serial Count...             **\n");
+            printf("-----------------------------------------\n");
+            serial_time = serial_count();
+            printf("** Run time: %.6f seconds          **\n", serial_time);
+            printf("\n-----------------------------------------\n");
 
+            /* PARALLEL PRIME COUNTING TEST */
+            printf("\n** Creating %d threads...               **\n", NUM_THREADS);
+            printf("-----------------------------------------\n");
+            threads = malloc(NUM_THREADS * sizeof(pthread_t));
+
+            if (threads == NULL) {
+                perror("Error when allocating threads");
+                break;
+            }
+
+            printf("\n** Running Parallel Count...           ** \n");
+            printf("-----------------------------------------\n");
+            parallel_time = parallel_count(block_queue, threads);
+            printf("** Run time: %.6f seconds          **\n", parallel_time);
+
+            // Free threads when they aren't needed anymore
+            free(threads);
+            
+            speedup = serial_time / parallel_time;
+            printf("\n-----------------------------------------\n");
+            printf("\n** Speedup: %.6f times             **\n", speedup);
             break;
 
         case 0:
-            // leave();
+            printf("** Menu exited with success            **\n");
+            printf("-----------------------------------------\n");
             break;
 
         default:
-            printf("** Error: Invalid option!!! **\n  Please enter a valid option\n");
+            printf("** Error: Invalid option!!! **\n**  Please enter a valid option **\n");
         }
     } while (option);
 
