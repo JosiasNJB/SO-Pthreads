@@ -17,10 +17,10 @@
 
 #define SEED 4
 #define NUM_THREADS 8
-#define MATRIX_XSIZE 100
-#define MATRIX_YSIZE 100
-#define BLOCK_XSIZE 10
-#define BLOCK_YSIZE 10
+#define MATRIX_XSIZE 10000
+#define MATRIX_YSIZE 10000
+#define BLOCK_XSIZE 100
+#define BLOCK_YSIZE 100
 
 int** matrix;
 int prime_count;
@@ -29,7 +29,8 @@ clock_t start, finish;
 int blocks_insider_matrix;
 
 // Mutexes de controle de RC's
-pthread_mutex_t mutex;
+pthread_mutex_t mutex_count;
+pthread_mutex_t mutex_queue;
 
 /* *************************** */
 /* ***** QUEUE FUNCTIONS ***** */
@@ -276,22 +277,37 @@ void* thread_readblock(void* arg) {
         printf("**Error: block_queue is NULL **\n");
         pthread_exit(NULL);
     }
-    
-    //print_block_queue(block_queue);
-    BlockCoord* coord = q_dequeue(block_queue);
-    //printf("Block on coordinate (%d, %d):\n", coord->block_xposition, coord->block_yposition);
-    for (int i = coord->block_xposition; i < coord->block_xposition + BLOCK_XSIZE && i < MATRIX_XSIZE; i++) {
-        for (int j = coord->block_yposition; j < coord->block_yposition + BLOCK_YSIZE && j < MATRIX_YSIZE; j++) {
-            if (isPrime(matrix[i][j])) {
-                pthread_mutex_lock(&mutex);
-                prime_count++;
-                pthread_mutex_unlock(&mutex);
+
+    while (1) {
+        pthread_mutex_lock(&mutex_queue);
+        if (q_is_empty(block_queue)) {
+            pthread_mutex_unlock(&mutex_queue);
+            break;  // Exit if queue is empty
+        }
+        BlockCoord* coord = q_dequeue(block_queue);
+        pthread_mutex_unlock(&mutex_queue);
+
+        if (coord == NULL) {
+            break; // Extra safeguard
+        }
+
+        // Process the block
+        for (int i = coord->block_xposition; i < coord->block_xposition + BLOCK_XSIZE && i < MATRIX_XSIZE; i++) {
+            for (int j = coord->block_yposition; j < coord->block_yposition + BLOCK_YSIZE && j < MATRIX_YSIZE; j++) {
+                if (isPrime(matrix[i][j])) {
+                    pthread_mutex_lock(&mutex_count);
+                    prime_count++;
+                    pthread_mutex_unlock(&mutex_count);
+                }
             }
         }
+        //printf("\nprime_count at coord (%d, %d): %d\n", coord->block_xposition, coord->block_yposition, prime_count);
     }
-    printf("\nprime_count at coord (%d, %d): %d\n", coord->block_xposition, coord->block_yposition, prime_count);
+
     pthread_exit(NULL);
 }
+
+
 
 /* **************************** */
 /* ***** COUNT FUNCTIONS ***** */
@@ -324,6 +340,7 @@ double parallel_count(BlockQueue* block_queue, pthread_t* threads) {
     start = clock();
 
     for (int i = 0; i < NUM_THREADS; i++) {
+        printf("\n Created thread %d\n", i);
         int ret = pthread_create(&threads[i], NULL, thread_readblock, NULL);
         if (ret != 0) {
             printf("** Error creating thread %d **\n", i);
@@ -435,7 +452,8 @@ int main(int argc, char* argv[]) {
     pthread_t* threads = NULL;
 
     // Initialize mutexes
-    pthread_mutex_init(&mutex, NULL);
+    pthread_mutex_init(&mutex_count, NULL);
+    pthread_mutex_init(&mutex_queue, NULL);
 
 
     // Initialize matrix
@@ -458,7 +476,8 @@ int main(int argc, char* argv[]) {
     free_matrix();
 
     // Destroy mutexes
-    pthread_mutex_destroy(&mutex);
+    pthread_mutex_destroy(&mutex_count);
+    pthread_mutex_destroy(&mutex_queue);
 
     return 0;
 
