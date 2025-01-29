@@ -13,8 +13,6 @@
 #include <pthread.h>
 #include <assert.h>
 
-//#include <unistd.h>
-
 #define SEED 4
 #define NUM_THREADS 8
 #define MATRIX_XSIZE 10000
@@ -28,7 +26,7 @@ double time_spent;
 clock_t start, finish;
 int blocks_insider_matrix;
 
-// Mutexes de controle de RC's
+// Mutexes to control critical sections
 pthread_mutex_t mutex_count;
 pthread_mutex_t mutex_queue;
 
@@ -205,7 +203,7 @@ int** allocate_matrix() {
 
 
 
-    /* aloca as linhas da matriz */
+    /* Allocate the matrix's lines */
     v = calloc(MATRIX_XSIZE, sizeof(int*)); /* An vector of m pointers to int */
 
     if (v == NULL) {
@@ -213,7 +211,7 @@ int** allocate_matrix() {
         return (NULL);
     }
 
-    /* aloca as colunas da matriz */
+    /* Allocate the matrix's collumns */
     for (index = 0; index < MATRIX_XSIZE; index++) {
         v[index] = calloc(MATRIX_YSIZE, sizeof(int)); /* m vectors of n int */
 
@@ -301,7 +299,6 @@ void* thread_readblock(void* arg) {
                 }
             }
         }
-        //printf("\nprime_count at coord (%d, %d): %d\n", coord->block_xposition, coord->block_yposition, prime_count);
     }
 
     pthread_exit(NULL);
@@ -339,7 +336,6 @@ double parallel_count(BlockQueue* block_queue, pthread_t* threads) {
     start = clock();
 
     for (int i = 0; i < NUM_THREADS; i++) {
-        //printf("\n Created thread %d\n", i);
         int ret = pthread_create(&threads[i], NULL, thread_readblock, NULL);
         if (ret != 0) {
             printf("** Error creating thread %d **\n", i);
@@ -353,9 +349,6 @@ double parallel_count(BlockQueue* block_queue, pthread_t* threads) {
             exit(EXIT_FAILURE);
         }
     }
-
-    //printf("Verificando BLOCK QUEUE \n");
-    //print_block_queue(block_queue);
 
     // Function reports
     finish = clock();
@@ -522,7 +515,6 @@ int main(int argc, char* argv[]) {
     // Initialize matrix
     matrix = allocate_matrix();
     fill_matrix();
-    //print_matrix();
 
     menu(&threads);
 
