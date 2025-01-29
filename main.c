@@ -371,9 +371,10 @@ double parallel_count(BlockQueue* block_queue, pthread_t* threads) {
 }
 
 /* **********  MENU  ********** */
-void menu(BlockQueue* block_queue, pthread_t* threads) {
+void menu(pthread_t* threads) {
     int option;
     double speedup, serial_time, parallel_time;
+
     do {
         printf("\n---------------- MENU -------------------\n");
         printf("1. Print Matrix\n");
@@ -419,6 +420,18 @@ void menu(BlockQueue* block_queue, pthread_t* threads) {
             break;
 
         case 4:
+
+            if (block_queue != NULL) {
+                q_free(block_queue);  // Free previous queue if it exists
+            }
+            block_queue = q_create();  
+            // Populate the queue with block start coordinates
+            for (int i = 0; i < MATRIX_XSIZE; i += BLOCK_XSIZE) {
+                for (int j = 0; j < MATRIX_YSIZE; j += BLOCK_YSIZE) {
+                    q_enqueue(block_queue, create_coord_struct(i, j));
+                }
+            }
+
             /* PARALLEL PRIME COUNTING TEST */
             printf("** Creating %d threads...               **\n", NUM_THREADS);
             printf("-----------------------------------------\n");
@@ -440,6 +453,17 @@ void menu(BlockQueue* block_queue, pthread_t* threads) {
             break;
 
         case 5:
+
+            if (block_queue != NULL) {
+                q_free(block_queue);  // Free previous queue if it exists
+            }
+            block_queue = q_create();  
+            // Populate the queue with block start coordinates
+            for (int i = 0; i < MATRIX_XSIZE; i += BLOCK_XSIZE) {
+                for (int j = 0; j < MATRIX_YSIZE; j += BLOCK_YSIZE) {
+                    q_enqueue(block_queue, create_coord_struct(i, j));
+                }
+            }
             /* SERIAL PRIME COUNTING TEST */
             printf("** Running Serial Count...             **\n");
             printf("-----------------------------------------\n");
@@ -456,6 +480,7 @@ void menu(BlockQueue* block_queue, pthread_t* threads) {
                 perror("Error when allocating threads");
                 break;
             }
+            
 
             printf("\n** Running Parallel Count...           ** \n");
             printf("-----------------------------------------\n");
@@ -467,7 +492,7 @@ void menu(BlockQueue* block_queue, pthread_t* threads) {
             
             speedup = serial_time / parallel_time;
             printf("\n-----------------------------------------\n");
-            printf("\n** Speedup: %.6f times             **\n", speedup);
+            printf("\n** Speedup: %.6f                   **\n", speedup);
             break;
 
         case 0:
@@ -499,16 +524,7 @@ int main(int argc, char* argv[]) {
     fill_matrix();
     //print_matrix();
 
-    // Starting the queue with the start coordinates of every block
-    block_queue = q_create();
-
-    for (int i = 0; i < MATRIX_XSIZE; i += BLOCK_XSIZE) {
-        for (int j = 0; j < MATRIX_YSIZE; j += BLOCK_YSIZE) {
-            q_enqueue(block_queue, create_coord_struct(i, j));
-        }
-    }
-
-    menu(block_queue, &threads);
+    menu(&threads);
 
     // freeing the matrix after the tests
     free_matrix();
